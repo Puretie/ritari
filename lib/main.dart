@@ -73,7 +73,10 @@ class _MyHomePageState extends State<MyHomePage> {
               itemBuilder: (context, pos) {
                 int time = int.tryParse(Storage.b.keys.toList()[pos]) ?? 0;
                 String value = Storage.b.get(time.toString()) ?? "null text";
-                String shortValue = value.replaceAll("\n", " ");
+                String reuse = value.split('~=').first;
+                String ttl = value.split('~=').last;
+                String shortValue =
+                    value.split('~=').first.replaceAll("\n", " ");
                 shortValue = shortValue.length > 256
                     ? (shortValue.substring(0, 255) + "...")
                     : shortValue;
@@ -89,7 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             child: Material(
                               color: Colors.transparent,
                               child: ListTile(
-                                  title: Text("$time"),
+                                  title: Text("$ttl"),
                                   subtitle: Text(shortValue),
                                   onTap: () {
                                     Navigator.push(
@@ -97,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         MaterialPageRoute(
                                             builder: (context) => NewScreen(
                                                   k: time.toString(),
-                                                  value: value,
+                                                  value: reuse,
                                                 ))).then((value) {
                                       setState(() {
                                         if (value == null) {

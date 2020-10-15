@@ -4,19 +4,29 @@ import 'package:flutter/material.dart';
 class NewScreen extends StatelessWidget {
   final String k;
   final String value;
-  NewScreen({this.k, this.value});
+  final String ttc;
+  NewScreen({this.k, this.value, this.ttc});
   @override
   Widget build(BuildContext context) {
     TextEditingController tc = TextEditingController(text: value ?? "");
+    TextEditingController tval = TextEditingController(text: ttc ?? "");
     // TODO: implement build
     return Scaffold(
         appBar: AppBar(
-          title: Text("Some Text"),
+          title: TextField(
+            maxLines: 1,
+            controller: tval,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: 'Title',
+            ),
+          ),
         ),
         floatingActionButton: FloatingActionButton(
           child: Icon(Icons.check),
           onPressed: () {
-            Navigator.pop(context, <String>[k ?? "", tc.value.text]);
+            Navigator.pop(context,
+                <String>[k ?? "", tc.value.text + "~=" + tval.value.text]);
           },
         ),
         body: WillPopScope(
@@ -40,8 +50,10 @@ class NewScreen extends StatelessWidget {
                           FlatButton(
                               onPressed: () {
                                 Navigator.pop(context);
-                                Navigator.pop(
-                                    context, <String>[k ?? "", tc.value.text]);
+                                Navigator.pop(context, <String>[
+                                  k ?? "",
+                                  tc.value.text + "~=" + tval.value.text
+                                ]);
                               },
                               child: Text("Save"))
                         ],
