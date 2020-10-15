@@ -1,29 +1,39 @@
+import 'package:Ritari/addscreen.dart';
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:tinycolor/tinycolor.dart';
+
+class Storage extends HiveObject {
+  static Box b;
+  static Future<void> init() async => b = await Hive.openBox('myNotes');
+}
 
 void main() {
-  runApp(MyApp());
+  Storage.init().then((value) => runApp(MyApp()));
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
+  MaterialColor myColor(Color c) {
+    return MaterialColor(c.value, {
+      50: c,
+      100: c,
+      200: c,
+      300: c,
+      400: c,
+      500: c,
+      600: c,
+      700: c,
+      800: c,
+      900: c,
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Dutter Flemo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-        // This makes the visual density adapt to the platform that you run
-        // the app on. For desktop platforms, the controls will be smaller and
-        // closer together (more dense) than on mobile platforms.
+        primarySwatch: myColor(Colors.teal.shade800),
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: MyHomePage(title: 'Flutter Demo Home Page'),
@@ -34,15 +44,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
@@ -50,91 +51,126 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<int> items = List.generate(20, (i) => i);
-  ScrollController _scrollController = new ScrollController();
-  bool isRequesting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels ==
-          _scrollController.position.maxScrollExtent) {
-        _getMoreData();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  _getMoreData() async {
-    if (!isRequesting) {
-      setState(() => isRequesting = true);
-      List<int> moreStuff = await fRequest(items.length, items.length + 10);
-      setState(() {
-        items.addAll(moreStuff);
-        isRequesting = false;
-      });
-    }
-  }
-
-  Widget progressIndicator() {
-    return new Padding(
-      padding: EdgeInsets.all(8.0),
-      child: Center(
-        child: Opacity(
-          opacity: isRequesting ? 1.0 : 0.0,
-          child: CircularProgressIndicator(),
-        ),
-      ),
-    );
-  }
-
+  String title = "Some Text";
+  static const int CARD_WIDTH = 300;
+  static const int CARD_HEIGHT = 200;
   @override
   Widget build(BuildContext context) {
+    int count = MediaQuery.of(context).size.width ~/ CARD_WIDTH;
     return Scaffold(
       appBar: AppBar(
-        title: Text("Some Text"),
+        title: Text(title),
       ),
       body: Stack(
         children: [
-          ListView.builder(
-            itemCount: items.length + 1,
-            itemBuilder: (context, index) {
-              if (index == items.length) {
-                return progressIndicator();
-              } else {
-                return ListTile(
-                  onTap: () {
-                    //note menu
-                  },
-                  title: Text("Number $index"),
+          GridView.builder(
+              itemCount: Storage.b.keys.length,
+              cacheExtent: 100,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                childAspectRatio: CARD_WIDTH / CARD_HEIGHT,
+                crossAxisCount: count,
+              ),
+              itemBuilder: (context, pos) {
+                int time = int.tryParse(Storage.b.keys.toList()[pos]) ?? 0;
+                String value = Storage.b.get(time.toString()) ?? "null text";
+                String shortValue = value.replaceAll("\n", " ");
+                shortValue = shortValue.length > 256
+                    ? (shortValue.substring(0, 255) + "...")
+                    : shortValue;
+                shortValue = shortValue.trim();
+                return SizedBox(
+                  child: Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Material(
+                      child: ClipRRect(
+                        child: Container(
+                          child: Padding(
+                            padding: EdgeInsets.all(7),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: ListTile(
+                                  title: Text("$time"),
+                                  subtitle: Text(shortValue),
+                                  onTap: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => NewScreen(
+                                                  k: time.toString(),
+                                                  value: value,
+                                                ))).then((value) {
+                                      setState(() {
+                                        if (value == null) {
+                                          return;
+                                        }
+                                        List<String> l = value;
+                                        Storage.b.put(
+                                            l[0].isEmpty
+                                                ? DateTime.now()
+                                                    .millisecondsSinceEpoch
+                                                    .toString()
+                                                : l[0],
+                                            l[1] ?? "null");
+                                      });
+                                    });
+                                  },
+                                  onLongPress: () {
+                                    setState(() {
+                                      Storage.b.delete(time.toString());
+                                    });
+                                  }),
+                            ),
+                          ),
+                          decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                            colors: <Color>[
+                              TinyColor(Colors.teal)
+                                  .spin(-13)
+                                  .brighten(5)
+                                  .color,
+                              TinyColor(Colors.teal).spin(-7).brighten(2).color,
+                              TinyColor(Colors.teal).spin(0).color,
+                              TinyColor(Colors.teal).spin(7).darken(2).color,
+                              TinyColor(Colors.teal).spin(13).darken(5).color
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )),
+                        ),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      color: Colors.transparent,
+                      elevation: 10,
+                    ),
+                  ),
                 );
-              }
-            },
-            controller: _scrollController,
-          ),
+              }),
           Align(
-              alignment: Alignment.bottomRight,
-              child: FloatingActionButton(
-                backgroundColor: Colors.teal.shade400,
-                child: Icon(Icons.add),
-                onPressed: () {
-                  //createnote
-                },
-              ))
+            alignment: Alignment.bottomRight,
+            child: FloatingActionButton(
+              backgroundColor: Colors.red,
+              onPressed: () {
+                Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => NewScreen()))
+                    .then((value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setState(() {
+                    List<String> l = value;
+                    Storage.b.put(
+                        l[0].isEmpty
+                            ? DateTime.now().millisecondsSinceEpoch.toString()
+                            : l[0],
+                        l[1] ?? "null");
+                  });
+                });
+              },
+              child: Icon(Icons.add),
+            ),
+          )
         ],
       ),
     );
-  }
-
-  Future<List<int>> fRequest(int from, int to) async {
-    return Future.delayed(Duration(seconds: 2), () {
-      return List.generate(to - from, (i) => i + from);
-    });
   }
 }
